@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>阅读打卡</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-512.png">
+    <meta name="theme-color" content="#4CAF50">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="阅读打卡">
+    <style>
+        :root {
+            --primary: #4CAF50;
+            --primary-dark: #388E3C;
+            --primary-light: #C8E6C9;
+            --accent: #FF6D00;
+            --bg: #f5f6f8;
+            --card-bg: #ffffff;
+            --text: #2c3e50;
+            --text-secondary: #7f8c8d;
+            --border: #e8ecf1;
+            --shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.10);
+            --radius: 16px;
+            --radius-sm: 10px;
+            --radius-xs: 8px;
+            --tab-height: 64px;
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+            --font-xs: 0.7rem;
+            --font-sm: 0.82rem;
+            --font-md: 0.95rem;
+            --font-lg: 1.1rem;
+            --font-xl: 1.4rem;
+            --font-2xl: 1.8rem;
+            --font-3xl: 2.4rem;
+            --transition: 0.2s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 16px;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding-bottom: calc(var(--tab-height) + var(--safe-bottom) + 16px);
+            line-height: 1.5;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 480px;
+            min-height: 100vh;
+            min-height: 100dvh;
+            position: relative;
+            background: var(--bg);
+        }
+
+        .app-header {
+            padding: 20px 20px 12px;
+            background: var(--card-bg);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        .app-header .header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+        .app-header .logo {
+            font-size: var(--font-xl);
+            font-weight: 700;
+            color: var(--primary-dark);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .app-header .date-display {
+            font-size: var(--font-sm);
+            color: var(--text-secondary);
+        }
+
+        .page-content {
+            padding: 16px 16px 8px;
+            display: none;
+            animation: fadeSlideIn 0.3s ease;
+        }
+        .page-content.active {
+            display: block;
+        }
+
+        @keyframes fadeSlideIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 18px 16px;
+            margin-bottom: 14px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+        .card-title {
+            font-size: var(--font-md);
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card-title .icon { font-size: 1.3rem; }
+
+        .streak-banner {
+            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+            border-radius: var(--radius);
+            padding: 20px 18px;
+            margin-bottom: 14px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 20px rgba(76, 175, 80, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        .streak-banner::after {
+            content: ''; position: absolute; top: -30px; right: -20px;
+            width: 100px; height: 100px; border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+        }
+        .streak-banner .streak-info h3 {
+            font-size: var(--font-xs); font-weight: 500; opacity: 0.9;
+            letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 2px;
+        }
+        .streak-banner .streak-number {
+            font-size: var(--font-3xl); font-weight: 800; line-height: 1; letter-spacing: -1px;
+        }
+        .streak-banner .streak-label { font-size: var(--font-xs); opacity: 0.85; margin-top: 2px; }
+        .streak-banner .streak-icon { font-size: 3rem; animation: bounce 2s infinite; z-index: 1; }
+        @keyframes bounce {
+            0%,100%{transform:translateY(0);} 30%{transform:translateY(-10px);} 50%{transform:translateY(0);} 70%{transform:translateY(-6px);} 85%{transform:translateY(0);}
+        }
+        .streak-banner.streak-zero {
+            background: linear-gradient(135deg, #b0bec5 0%, #78909c 100%);
+            box-shadow: 0 4px 16px rgba(120,144,156,0.25);
+        }
+        .streak-banner.streak-zero .streak-icon { animation: none; opacity: 0.7; }
+
+        .checkin-list { margin-bottom: 12px; }
+        .checkin-item {
+            display: flex; align-items: center; justify-content: space-between;
+            background: #f9fafb; border-radius: var(--radius-xs); padding: 12px 14px;
+            margin-bottom: 8px; border: 1px solid var(--border);
+        }
+        .checkin-item .item-info { flex: 1; }
+        .checkin-item .item-type { font-weight: 700; font-size: var(--font-sm); display: flex; align-items: center; gap: 4px; }
+        .checkin-item .item-duration { font-size: var(--font-xs); color: var(--text-secondary); }
+        .checkin-item .item-note { font-size: 0.7rem; color: var(--text-secondary); font-style: italic; margin-top: 2px; }
+        .checkin-item .item-delete {
+            background: none; border: none; color: #e74c3c; font-size: 1.2rem;
+            cursor: pointer; padding: 4px 8px; border-radius: 50%; transition: 0.2s;
+            display: flex; align-items: center; justify-content: center;
+            -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+        }
+        .checkin-item .item-delete:active { background: #ffeaea; }
+        .today-summary {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 10px; font-size: var(--font-sm); color: var(--text);
+            background: var(--primary-light); padding: 8px 14px; border-radius: var(--radius-xs);
+        }
+        .today-summary strong { font-size: var(--font-lg); color: var(--primary-dark); }
+
+        .add-form-toggle {
+            display: flex; justify-content: center; margin: 8px 0;
+        }
+        .add-form-panel {
+            border: 1px solid var(--border); border-radius: var(--radius-sm);
+            padding: 14px; background: #fafcfb; margin-top: 8px;
+            animation: expandIn 0.3s ease;
+        }
+        @keyframes expandIn {
+            from { opacity: 0; max-height: 0; padding: 0 14px; margin-top: 0; }
+            to { opacity: 1; max-height: 400px; padding: 14px; margin-top: 8px; }
+        }
+        .add-form-panel.hidden { display: none; }
+        .type-selector { display: block; margin-bottom: 14px; }
+        .module-group { margin-bottom: 14px; }
+        .module-group:last-child { margin-bottom: 0; }
+        .module-label {
+            font-size: var(--font-sm); font-weight: 700; color: var(--text);
+            margin-bottom: 8px; display: flex; align-items: center; gap: 5px;
+            border-left: 3px solid var(--primary); padding-left: 8px;
+        }
+        .module-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+        .type-chip {
+            display: flex; align-items: center; gap: 4px; padding: 9px 14px;
+            border-radius: 24px; border: 2px solid var(--border); background: #fafbfc;
+            cursor: pointer; font-size: var(--font-sm); font-weight: 500;
+            transition: all var(--transition); user-select: none; white-space: nowrap;
+            -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+        }
+        .type-chip:active { transform: scale(0.95); }
+        .type-chip.selected {
+            border-color: var(--primary); background: var(--primary-light);
+            color: var(--primary-dark); font-weight: 600;
+            box-shadow: 0 0 0 3px rgba(76,175,80,0.12);
+        }
+        .duration-input-group {
+            display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;
+        }
+        .duration-input-group label { font-size: var(--font-sm); font-weight: 600; }
+        .duration-input-group input[type="number"] {
+            flex: 1; min-width: 80px; padding: 10px 12px; border: 2px solid var(--border);
+            border-radius: var(--radius-xs); font-size: var(--font-md); font-weight: 600;
+            text-align: center; background: #fafbfc;
+            -webkit-appearance: none; appearance: none;
+        }
+        .duration-input-group input[type="number"]:focus {
+            outline: none; border-color: var(--primary); background: #fff;
+            box-shadow: 0 0 0 3px rgba(76,175,80,0.08);
+        }
+        .duration-preset {
+            padding: 8px 12px; border-radius: 20px; border: 1.5px solid var(--border);
+            background: #fafbfc; cursor: pointer; font-size: var(--font-xs); font-weight: 500;
+            white-space: nowrap; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+        }
+        .duration-preset:active { transform: scale(0.94); background: var(--primary-light); border-color: var(--primary); }
+        .duration-preset.active-preset { background: var(--primary-light); border-color: var(--primary); color: var(--primary-dark); font-weight: 600; }
+        .note-input {
+            width: 100%; padding: 10px 14px; border: 2px solid var(--border);
+            border-radius: var(--radius-xs); font-size: var(--font-sm); resize: none;
+            font-family: inherit; background: #fafbfc; margin-bottom: 14px;
+            -webkit-appearance: none; appearance: none;
+        }
+        .note-input:focus { outline: none; border-color: var(--primary); background: #fff; }
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            padding: 12px 24px; border-radius: 28px; border: none; font-size: var(--font-md);
+            font-weight: 600; cursor: pointer; transition: all var(--transition);
+            touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+            font-family: inherit; letter-spacing: 0.3px;
+        }
+        .btn:active { transform: scale(0.96); }
+        .btn-primary { background: var(--primary); color: #fff; width: 100%; box-shadow: 0 4px 14px rgba(76,175,80,0.3); }
+        .btn-primary:active { background: var(--primary-dark); }
+        .btn-secondary { background: #fff; color: var(--primary); border: 2px solid var(--primary); }
+        .btn-sm { padding: 7px 16px; font-size: var(--font-sm); border-radius: 20px; }
+        .btn-outline { background: #fff; border: 2px solid var(--border); color: var(--text); }
+        .btn-outline:active { background: #f0f4f0; }
+
+        .calendar-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .calendar-nav .month-label { font-size: var(--font-lg); font-weight: 700; }
+        .calendar-nav .nav-btn {
+            width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--border);
+            background: #fff; cursor: pointer; font-size: 1.1rem;
+            display: flex; align-items: center; justify-content: center;
+            touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+        }
+        .calendar-grid {
+            display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center;
+        }
+        .calendar-grid .day-header { font-size: var(--font-xs); font-weight: 600; color: var(--text-secondary); padding: 6px 0; }
+        .day-cell {
+            aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center;
+            border-radius: 50%; font-size: var(--font-sm); font-weight: 500; cursor: pointer;
+            transition: all var(--transition); touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+        }
+        .day-cell.other-month { color: #d0d5d9; cursor: default; pointer-events: none; }
+        .day-cell.today { font-weight: 700; color: var(--primary-dark); border: 2.5px solid var(--primary); background: #fff; }
+        .day-cell.checked { background: var(--primary); color: #fff; font-weight: 700; }
+        .day-cell.today.checked { background: var(--primary); color: #fff; border: 2.5px solid var(--primary-dark); }
+        .calendar-legend { display: flex; gap: 14px; margin-top: 10px; font-size: var(--font-xs); color: var(--text-secondary); }
+        .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .legend-dot.checked-dot { background: var(--primary); }
+        .legend-dot.today-dot { border: 2px solid var(--primary); background: #fff; }
+
+        .stats-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+        .stat-item { background: var(--card-bg); border-radius: var(--radius-sm); padding: 14px; text-align: center; box-shadow: var(--shadow); border: 1px solid var(--border); }
+        .stat-item .stat-value { font-size: var(--font-2xl); font-weight: 800; color: var(--primary-dark); }
+        .stat-item .stat-label { font-size: var(--font-xs); color: var(--text-secondary); margin-top: 4px; }
+        .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: var(--font-sm); }
+        .bar-row .bar-label { width: 50px; text-align: right; font-weight: 500; flex-shrink: 0; font-size: var(--font-xs); }
+        .bar-row .bar-track { flex: 1; height: 22px; background: #f0f3f5; border-radius: 11px; overflow: hidden; }
+        .bar-row .bar-fill { height: 100%; border-radius: 11px; min-width: 4px; display: flex; align-items: center; padding-left: 8px; font-size: 0.65rem; font-weight: 600; color: #fff; }
+        .bar-row .bar-value { width: 40px; font-weight: 600; font-size: var(--font-xs); color: var(--text); flex-shrink: 0; }
+        .week-bars { display: flex; gap: 6px; align-items: flex-end; height: 120px; padding-top: 8px; }
+        .week-bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
+        .week-bar-col .week-bar { width: 100%; max-width: 36px; border-radius: 6px 6px 0 0; background: var(--primary); min-height: 3px; }
+        .week-bar-col .week-bar.empty { background: #e0e5e9; }
+        .week-bar-col .week-bar-label { font-size: 0.6rem; color: var(--text-secondary); }
+        .week-bar-col .week-bar-val { font-size: 0.6rem; font-weight: 700; color: var(--primary-dark); }
+
+        .setting-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+        .setting-row:last-child { border-bottom: none; }
+        .form-input { padding: 8px 12px; border: 2px solid var(--border); border-radius: var(--radius-xs); font-size: var(--font-md); font-family: inherit; color: var(--text); background: #fff; outline: none; transition: border-color .15s; }
+        .form-input:focus { border-color: var(--primary); }
+        .custom-type-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+        .custom-type-tag { display: flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 16px; background: #f0f4f0; font-size: var(--font-xs); }
+        .remove-tag { cursor: pointer; font-weight: 700; color: #e74c3c; margin-left: 2px; font-size: 1rem; padding: 2px; }
+
+        .tab-bar {
+            position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+            width: 100%; max-width: 480px; height: var(--tab-height);
+            background: #fff; display: flex; border-top: 1px solid var(--border);
+            z-index: 60; box-shadow: 0 -2px 12px rgba(0,0,0,0.04); padding-bottom: var(--safe-bottom);
+        }
+        .tab-item {
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            cursor: pointer; color: #b0b8c1; gap: 3px; touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent; user-select: none; position: relative;
+        }
+        .tab-item.active { color: var(--primary); }
+        .tab-item.active::before {
+            content: ''; position: absolute; top: 0; left: 20%; right: 20%;
+            height: 3px; background: var(--primary); border-radius: 0 0 3px 3px;
+        }
+        .tab-badge { position: absolute; top: 4px; right: calc(50% - 18px); width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+        .tab-badge.hidden { display: none; }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 100; display: flex; align-items: center;
+            justify-content: center; animation: fadeIn 0.2s ease; padding: 20px;
+        }
+        .modal-overlay.hidden { display: none; }
+        .modal-card {
+            background: #fff; border-radius: var(--radius); padding: 22px 18px;
+            width: 100%; max-width: 380px; box-shadow: var(--shadow-lg);
+            animation: slideUp 0.25s ease; text-align: center;
+        }
+        @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+        @keyframes slideUp { from{transform:translateY(40px);opacity:0;} to{transform:translateY(0);opacity:1;} }
+
+        .toast {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            z-index: 200; background: #333; color: #fff; padding: 10px 22px;
+            border-radius: 24px; font-size: var(--font-sm); font-weight: 500;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+            animation: toastIn 0.3s ease, toastOut 0.3s ease 1.7s forwards;
+            pointer-events: none; max-width: 90vw; text-align: center;
+        }
+        @keyframes toastIn { from{opacity:0;transform:translateX(-50%) translateY(-20px);} to{opacity:1;transform:translateX(-50%) translateY(0);} }
+        @keyframes toastOut { from{opacity:1;transform:translateX(-50%) translateY(0);} to{opacity:0;transform:translateX(-50%) translateY(-20px);} }
+
+        .confetti-container { position: fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:150; }
+        .confetti-piece {
+            position: absolute; width: 10px; height: 10px; border-radius: 3px;
+            animation: confettiFall 1.5s ease-out forwards;
+        }
+        @keyframes confettiFall {
+            0%{transform:translateY(-100px) rotate(0deg); opacity:1;}
+            100%{transform:translateY(105vh) rotate(720deg); opacity:0;}
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <header class="app-header">
+        <div class="header-top">
+            <div class="logo"><span class="icon">📚</span>阅读打卡</div>
+            <span class="date-display" id="headerDate"></span>
+        </div>
+    </header>
+
+    <!-- 打卡页 -->
+    <div class="page-content active" id="page-checkin">
+        <div class="streak-banner" id="streakBanner">
+            <div class="streak-info">
+                <h3>🔥 连续打卡</h3>
+                <div class="streak-number" id="streakNumber">0</div>
+                <div class="streak-label">天</div>
+            </div>
+            <div class="streak-icon" id="streakEmoji">📚</div>
+        </div>
+
+        <div class="card" id="checkinCard">
+            <div class="card-title"><span class="icon">📝</span>今日记录</div>
+            <!-- 今日汇总 -->
+            <div class="today-summary" id="todaySummary" style="display:none;">
+                <span>🏅 今日总时长</span>
+                <span><strong id="todayTotalDuration">0</strong> 分钟</span>
+            </div>
+            <!-- 打卡列表 -->
+            <div class="checkin-list" id="checkinList"></div>
+            <!-- 添加新打卡按钮 -->
+            <div class="add-form-toggle">
+                <button class="btn btn-outline btn-sm" id="toggleAddFormBtn">➕ 添加新打卡</button>
+            </div>
+            <!-- 内联添加表单 -->
+            <div class="add-form-panel hidden" id="addFormPanel">
+                <div style="font-size:var(--font-sm);font-weight:700;color:var(--text);margin:2px 0 8px;">📂 选择分类</div>
+                <div class="type-selector" id="categorySelector"></div>
+                <div style="font-size:var(--font-sm);font-weight:700;color:var(--text);margin:12px 0 8px;">📕 书名</div>
+                <input type="text" id="bookTitleInput" placeholder="输入书名，如：存在与时间" maxlength="40" style="width:100%;padding:9px 12px;border:2px solid var(--border);border-radius:var(--radius-xs);font-size:var(--font-md);font-family:inherit;">
+                <div class="duration-input-group">
+                    <label>⏱ 时长</label>
+                    <input type="number" id="durationInput" value="30" min="1" max="600" step="1">
+                    <span style="font-size:var(--font-sm);color:var(--text-secondary);">分钟</span>
+                </div>
+                <div class="duration-input-group" style="margin-top:-8px;">
+                    <span style="min-width:40px;"></span>
+                    <span class="duration-preset active-preset" data-min="30">30分钟</span>
+                    <span class="duration-preset" data-min="45">45分钟</span>
+                    <span class="duration-preset" data-min="60">60分钟</span>
+                    <span class="duration-preset" data-min="90">90分钟</span>
+                </div>
+                <textarea class="note-input" id="noteInput" rows="2" placeholder="💬 备注（可选）"></textarea>
+                <div style="display:flex;gap:8px;">
+                    <button class="btn btn-primary" id="submitAddBtn" style="flex:2;">✅ 添加记录</button>
+                    <button class="btn btn-secondary" id="cancelAddBtn" style="flex:1;">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 日历页 -->
+    <div class="page-content" id="page-calendar">
+        <div class="card">
+            <div class="calendar-nav">
+                <button class="nav-btn" id="calPrev">◀</button>
+                <span class="month-label" id="calMonthLabel"></span>
+                <button class="nav-btn" id="calNext">▶</button>
+            </div>
+            <div class="calendar-grid" id="calendarGrid"></div>
+            <div class="calendar-legend">
+                <span><span class="legend-dot checked-dot"></span> 已打卡</span>
+                <span><span class="legend-dot today-dot"></span> 今天</span>
+            </div>
+        </div>
+        <div class="card" id="calDayDetail" style="display:none;">
+            <div class="card-title"><span class="icon">📋</span>日期详情</div>
+            <div id="calDayContent" style="font-size:var(--font-sm);color:var(--text-secondary);"></div>
+        </div>
+    </div>
+
+    <!-- 统计页 -->
+    <div class="page-content" id="page-stats">
+        <div class="stats-summary">
+            <div class="stat-item"><div class="stat-value" id="statTotalDays">0</div><div class="stat-label">总打卡天数</div></div>
+            <div class="stat-item"><div class="stat-value" id="statTotalDuration">0</div><div class="stat-label">总时长(分钟)</div></div>
+            <div class="stat-item"><div class="stat-value" id="statAvgDuration">0</div><div class="stat-label">平均每天(分钟)</div></div>
+            <div class="stat-item"><div class="stat-value" id="statLongestStreak">0</div><div class="stat-label">最长连续</div></div>
+        </div>
+        <div class="card"><div class="card-title"><span class="icon">📊</span>分类阅读分布</div><div class="bar-chart" id="typeBarChart"></div></div>
+        <div class="card"><div class="card-title"><span class="icon">📈</span>最近7天</div><div class="week-bars" id="weekBars"></div></div>
+    </div>
+
+    <!-- 设置页 -->
+    <div class="page-content" id="page-settings">
+        <div class="card">
+            <div class="card-title"><span class="icon">🎯</span>阅读目标</div>
+            <div class="setting-row"><span class="setting-label">每日目标时长（分钟）</span><input type="number" id="dailyGoalInput" value="30" min="5" max="600" class="form-input" style="width:110px;text-align:center;"></div>
+            <button class="btn btn-sm btn-primary" id="saveGoalBtn" style="margin-top:8px;">保存目标</button>
+        </div>
+        <div class="card">
+            <div class="card-title"><span class="icon">🏷</span>管理阅读分类</div>
+            <div class="custom-type-list" id="customTypeList"></div>
+            <div class="add-type-row" style="margin-top:10px;">
+                <div class="add-type-input-row" style="display:flex;gap:6px;">
+                    <input type="text" id="newTypeInput" placeholder="新分类名称，如：心理学" maxlength="20" style="flex:1;padding:8px;border:2px solid var(--border);border-radius:var(--radius-xs);font-size:var(--font-sm);">
+                    <button class="btn btn-sm btn-primary" id="addCatConfirmBtn">确定</button>
+                    <button class="btn btn-sm btn-outline" id="addCatCancelBtn">取消</button>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title"><span class="icon">💾</span>数据管理</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                <button class="btn btn-sm btn-secondary" id="exportBtn">📥 导出</button>
+                <button class="btn btn-sm btn-secondary" id="importBtn">📤 导入</button>
+                <input type="file" id="importFileInput" accept=".json" style="display:none;">
+                <button class="btn btn-sm btn-danger" id="clearDataBtn" style="background:#fff;color:#e74c3c;border:2px solid #e74c3c;">🗑 清除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部导航 -->
+    <nav class="tab-bar">
+        <div class="tab-item active" data-tab="checkin"><span class="tab-icon">📝</span><span class="tab-label">打卡</span><span class="tab-badge hidden" id="checkinBadge"></span></div>
+        <div class="tab-item" data-tab="calendar"><span class="tab-icon">📅</span><span class="tab-label">日历</span></div>
+        <div class="tab-item" data-tab="stats"><span class="tab-icon">📊</span><span class="tab-label">统计</span></div>
+        <div class="tab-item" data-tab="settings"><span class="tab-icon">⚙️</span><span class="tab-label">设置</span></div>
+    </nav>
+</div>
+
+<div class="modal-overlay hidden" id="modalOverlay"><div class="modal-card" id="modalCard"></div></div>
+<div id="toastContainer"></div>
+<div class="confetti-container" id="confettiContainer"></div>
+
+<script>
+(function() {
+    const STORAGE_KEY = 'sport_checkin_records_v2';
+    const SETTINGS_KEY = 'sport_checkin_settings_v2';
+
+    const READING_CATEGORIES = [
+        { id:'philosophy', name:'哲学类', emoji:'📜', color:'#8E7CC3' },
+        { id:'art', name:'艺术类', emoji:'🎨', color:'#FF6B8A' },
+        { id:'tool', name:'工具书', emoji:'🛠️', color:'#4ECDC4' },
+        { id:'literature', name:'文学类', emoji:'📖', color:'#FF8C42' },
+        { id:'history', name:'历史类', emoji:'🏛️', color:'#6C5CE7' },
+        { id:'social', name:'社科类', emoji:'📊', color:'#3D9970' },
+        { id:'other', name:'其他', emoji:'🧩', color:'#95A5A6' }
+    ];
+
+    function loadRecords() {
+        try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch(e) { return {}; }
+    }
+    function saveRecords(r) { localStorage.setItem(STORAGE_KEY, JSON.stringify(r)); }
+    function loadSettings() {
+        try {
+            const s = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {};
+            const ccs = s.customCategories || [];
+            ccs.forEach((ct,i) => { if (!ct.id) ct.id = 'c_legacy_'+i; });
+            return { dailyGoal: s.dailyGoal || 30, customCategories: ccs, removedCategories: s.removedCategories || [] };
+        } catch(e) { return { dailyGoal:30, customCategories:[], removedCategories:[] }; }
+    }
+    function saveSettings(s) { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); }
+
+    let records = loadRecords();
+    let settings = loadSettings();
+
+    function getAllTypes() {
+        const cats = READING_CATEGORIES.filter(m => !settings.removedCategories.includes(m.id)).map(m => ({
+            id: m.id, name: m.name, emoji: m.emoji, color: m.color
+        }));
+        const custom = settings.customCategories.map(ct => ({
+            id: ct.id, name: ct.name, emoji: ct.emoji||'📚',
+            color: ct.color||getRandomColor(), isCustom:true
+        }));
+        return [...cats, ...custom];
+    }
+    function getRandomColor() {
+        const colors = ['#FF6B6B','#4ECDC4','#FFD93D','#6C5CE7','#FF8C42','#45B7D1','#F78DA7','#7BDCB5'];
+        return colors[Math.floor(Math.random()*colors.length)];
+    }
+    function getTodayStr() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+    function formatDateStr(s) { const [y,m,d] = s.split('-'); return `${y}年${parseInt(m)}月${parseInt(d)}日`; }
+
+    function getTodayRecords() { return records[getTodayStr()] || []; }
+    function setTodayRecords(arr) {
+        const key = getTodayStr();
+        if (arr.length === 0) delete records[key];
+        else records[key] = arr;
+        saveRecords(records);
+    }
+
+    function calculateStreaks() {
+        const dates = Object.keys(records).filter(d => Array.isArray(records[d]) && records[d].length > 0).sort();
+        if (dates.length === 0) return { current:0, longest:0 };
+        let longest = 1, temp = 1;
+        for (let i=1; i<dates.length; i++) {
+            const prev = new Date(dates[i-1]), curr = new Date(dates[i]);
+            if ((curr - prev) / 86400000 === 1) temp++;
+            else { longest = Math.max(longest, temp); temp = 1; }
+        }
+        longest = Math.max(longest, temp);
+        let current = 0;
+        const today = new Date(); today.setHours(0,0,0,0);
+        let check = new Date(today);
+        if (!records[getTodayStr()] || records[getTodayStr()].length === 0) check.setDate(check.getDate()-1);
+        while (true) {
+            const ds = `${check.getFullYear()}-${String(check.getMonth()+1).padStart(2,'0')}-${String(check.getDate()).padStart(2,'0')}`;
+            if (records[ds] && records[ds].length > 0) { current++; check.setDate(check.getDate()-1); }
+            else break;
+        }
+        return { current, longest };
+    }
+
+    function showToast(msg) {
+        const t = document.createElement('div'); t.className='toast'; t.textContent=msg;
+        document.getElementById('toastContainer').appendChild(t);
+        setTimeout(()=> t.remove(), 2200);
+    }
+    function showConfetti() {
+        const c = document.getElementById('confettiContainer');
+        for (let i=0; i<50; i++) {
+            const p = document.createElement('div'); p.className='confetti-piece';
+            p.style.left=Math.random()*100+'%'; p.style.top=-(Math.random()*60+10)+'px';
+            p.style.background=['#FF6B6B','#4ECDC4','#FFD93D','#6C5CE7','#4CAF50'][Math.floor(Math.random()*5)];
+            p.style.animationDuration=Math.random()*1.2+1+'s';
+            c.appendChild(p);
+        }
+        setTimeout(()=> c.innerHTML='', 2500);
+    }
+
+    function showModal(html) {
+        const overlay = document.getElementById('modalOverlay');
+        document.getElementById('modalCard').innerHTML = html;
+        overlay.classList.remove('hidden');
+    }
+    function hideModal() { document.getElementById('modalOverlay').classList.add('hidden'); }
+    document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) hideModal(); });
+
+    // 通用确认弹窗（带确认/取消按钮）
+    function confirmModal({ title, message, confirmText = '确定', cancelText = '取消', danger = false, onConfirm }) {
+        const card = document.getElementById('modalCard');
+        card.innerHTML = `
+            <div style="font-size:var(--font-lg);font-weight:700;margin-bottom:8px;color:var(--text);">${title}</div>
+            <div style="font-size:var(--font-sm);color:var(--text-secondary);line-height:1.6;margin-bottom:18px;">${message}</div>
+            <div style="display:flex;gap:10px;">
+                <button class="btn btn-outline" id="cmCancel" style="flex:1;">${cancelText}</button>
+                <button class="btn" id="cmConfirm" style="flex:1;${danger ? 'background:#e74c3c;color:#fff;' : 'background:var(--primary);color:#fff;'}">${confirmText}</button>
+            </div>
+        `;
+        document.getElementById('modalOverlay').classList.remove('hidden');
+        document.getElementById('cmCancel').onclick = hideModal;
+        document.getElementById('cmConfirm').onclick = () => { hideModal(); if (onConfirm) onConfirm(); };
+    }
+
+    // 页面切换
+    let currentTab = 'checkin';
+    const pages = {
+        checkin: document.getElementById('page-checkin'),
+        calendar: document.getElementById('page-calendar'),
+        stats: document.getElementById('page-stats'),
+        settings: document.getElementById('page-settings')
+    };
+    function switchTab(tab) {
+        currentTab = tab;
+        document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+        document.querySelector(`.tab-item[data-tab="${tab}"]`).classList.add('active');
+        Object.values(pages).forEach(p => p.classList.remove('active'));
+        pages[tab].classList.add('active');
+        if (tab === 'checkin') renderCheckinPage();
+        if (tab === 'calendar') renderCalendar();
+        if (tab === 'stats') renderStats();
+        if (tab === 'settings') renderSettings();
+        updateBadge();
+    }
+    document.querySelectorAll('.tab-item').forEach(item => item.addEventListener('click', () => switchTab(item.dataset.tab)));
+
+    function updateBadge() {
+        const badge = document.getElementById('checkinBadge');
+        const today = getTodayRecords();
+        badge.classList.toggle('hidden', today.length > 0 || currentTab === 'checkin');
+    }
+
+    // ========== 打卡页面 ==========
+    function renderCheckinPage() {
+        document.getElementById('headerDate').textContent = formatDateStr(getTodayStr());
+        const streaks = calculateStreaks();
+        document.getElementById('streakNumber').textContent = streaks.current;
+        const banner = document.getElementById('streakBanner');
+        const emoji = document.getElementById('streakEmoji');
+        if (streaks.current === 0) { banner.className='streak-banner streak-zero'; emoji.textContent='😴'; }
+        else if (streaks.current >= 30) { banner.className='streak-banner'; emoji.textContent='🏆'; }
+        else if (streaks.current >= 14) { banner.className='streak-banner'; emoji.textContent='🔥'; }
+        else { banner.className='streak-banner'; emoji.textContent='📚'; }
+
+        const todayRecords = getTodayRecords();
+        const listDiv = document.getElementById('checkinList');
+        const summaryDiv = document.getElementById('todaySummary');
+        const totalDuration = todayRecords.reduce((sum, r) => sum + r.duration, 0);
+
+        if (todayRecords.length > 0) {
+            summaryDiv.style.display = 'flex';
+            document.getElementById('todayTotalDuration').textContent = totalDuration;
+            listDiv.innerHTML = todayRecords.map((r, i) => `
+                <div class="checkin-item" data-index="${i}">
+                    <div class="item-info">
+                        <div class="item-type">${r.typeEmoji} ${r.typeName}</div>
+                        <div class="item-duration">${r.duration} 分钟</div>
+                        ${r.note ? `<div class="item-note">“${r.note}”</div>` : ''}
+                    </div>
+                    <button class="item-delete" data-index="${i}" title="删除此条">🗑️</button>
+                </div>
+            `).join('');
+        } else {
+            summaryDiv.style.display = 'none';
+            listDiv.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:12px;">今天还没有打卡记录</div>';
+        }
+
+        // 绑定删除事件
+        listDiv.querySelectorAll('.item-delete').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const idx = parseInt(this.dataset.index);
+                const arr = getTodayRecords();
+                const rec = arr[idx];
+                if (!rec) return;
+                confirmModal({
+                    title: '删除记录',
+                    message: `确定删除这条记录吗？删除后无法恢复。<br><br><b>${rec.typeEmoji} ${rec.typeName} · ${rec.duration}分钟</b>${rec.note ? `<br><i>“${rec.note}”</i>` : ''}`,
+                    confirmText: '删除',
+                    danger: true,
+                    onConfirm: () => {
+                        const a = getTodayRecords();
+                        if (idx >= 0 && idx < a.length) {
+                            a.splice(idx, 1);
+                            setTodayRecords(a);
+                            renderCheckinPage();
+                            updateBadge();
+                            showToast('已删除一条记录');
+                        }
+                    }
+                });
+            });
+        });
+
+        // 渲染分类选择器（单一层级，分类即可选标签）
+        const typeSelector = document.getElementById('categorySelector');
+        let firstChip = true;
+        let selectorHtml = '';
+        const allCats = [...READING_CATEGORIES.filter(m => !settings.removedCategories.includes(m.id)), ...settings.customCategories];
+        allCats.forEach(c => {
+            selectorHtml += `<span class="type-chip${firstChip?' selected':''}" data-cat-id="${c.id}" data-cat-name="${c.name}" data-cat-emoji="${c.emoji}">${c.name}</span>`;
+            firstChip = false;
+        });
+        typeSelector.innerHTML = selectorHtml;
+        typeSelector.querySelectorAll('.type-chip').forEach(chip => {
+            chip.addEventListener('click', function() {
+                typeSelector.querySelectorAll('.type-chip').forEach(c => c.classList.remove('selected'));
+                this.classList.add('selected');
+            });
+        });
+
+        // 时长预设
+        const presetSpans = document.querySelectorAll('#addFormPanel .duration-preset');
+        const durationInput = document.getElementById('durationInput');
+        presetSpans.forEach(span => {
+            span.addEventListener('click', function() {
+                durationInput.value = this.dataset.min;
+                presetSpans.forEach(s => s.classList.remove('active-preset'));
+                this.classList.add('active-preset');
+            });
+        });
+        durationInput.addEventListener('input', function() {
+            const val = parseInt(this.value);
+            presetSpans.forEach(s => s.classList.toggle('active-preset', parseInt(s.dataset.min) === val));
+        });
+
+        // 默认隐藏添加面板
+        document.getElementById('addFormPanel').classList.add('hidden');
+        document.getElementById('noteInput').value = '';
+        updateBadge();
+    }
+
+    document.getElementById('toggleAddFormBtn').addEventListener('click', () => {
+        document.getElementById('addFormPanel').classList.toggle('hidden');
+    });
+    document.getElementById('cancelAddBtn').addEventListener('click', () => {
+        document.getElementById('addFormPanel').classList.add('hidden');
+    });
+
+    document.getElementById('submitAddBtn').addEventListener('click', () => {
+        const chip = document.querySelector('#categorySelector .type-chip.selected');
+        if (!chip) return showToast('请选择分类');
+        const bookTitle = document.getElementById('bookTitleInput').value.trim();
+        if (!bookTitle) return showToast('请输入书名');
+        const duration = parseInt(document.getElementById('durationInput').value);
+        if (!duration || duration < 1 || duration > 600) return showToast('请输入有效时长(1-600)');
+        const note = document.getElementById('noteInput').value.trim();
+        const catName = chip.dataset.catName;
+        const catEmoji = chip.dataset.catEmoji;
+        const typeName = `${catName}·《${bookTitle}》`;
+        const typeEmoji = catEmoji;
+        confirmModal({
+            title: '确认添加记录',
+            message: `请确认打卡信息：<br><br><b>${typeEmoji} ${typeName} · ${duration}分钟</b>${note ? `<br><i>“${note}”</i>` : ''}`,
+            confirmText: '确认添加',
+            onConfirm: () => {
+                const record = {
+                    typeId: chip.dataset.catId,
+                    typeCategory: catName,
+                    typeName,
+                    typeEmoji,
+                    duration,
+                    note,
+                    timestamp: Date.now()
+                };
+                const arr = getTodayRecords();
+                arr.push(record);
+                setTodayRecords(arr);
+                document.getElementById('addFormPanel').classList.add('hidden');
+                document.getElementById('noteInput').value = '';
+                document.getElementById('bookTitleInput').value = '';
+                showConfetti();
+                showToast('✅ 打卡成功！');
+                renderCheckinPage();
+                updateBadge();
+            }
+        });
+    });
+
+    // ========== 日历 ==========
+    let calYear, calMonth;
+    function renderCalendar(y, m) {
+        if (y === undefined) { const d = new Date(); calYear = d.getFullYear(); calMonth = d.getMonth(); }
+        else { calYear = y; calMonth = m; }
+        document.getElementById('calMonthLabel').textContent = `${calYear}年 ${calMonth+1}月`;
+        const grid = document.getElementById('calendarGrid');
+        const days = ['日','一','二','三','四','五','六'];
+        let html = days.map(d => `<div class="day-header">${d}</div>`).join('');
+        const firstDay = new Date(calYear, calMonth, 1).getDay();
+        const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+        const prevMonthDays = new Date(calYear, calMonth, 0).getDate();
+        const todayStr = getTodayStr();
+
+        for (let i=firstDay-1; i>=0; i--) {
+            const d = prevMonthDays - i;
+            html += `<div class="day-cell other-month">${d}</div>`;
+        }
+        for (let d=1; d<=daysInMonth; d++) {
+            const ds = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const isToday = ds === todayStr;
+            const checked = records[ds] && records[ds].length > 0;
+            let cls = 'day-cell';
+            if (isToday) cls += ' today';
+            if (checked) cls += ' checked';
+            html += `<div class="${cls}" data-date="${ds}">${d}</div>`;
+        }
+        const totalCells = firstDay + daysInMonth;
+        const remaining = (7 - totalCells % 7) % 7;
+        for (let d=1; d<=remaining; d++) html += `<div class="day-cell other-month">${d}</div>`;
+        grid.innerHTML = html;
+
+        grid.querySelectorAll('.day-cell:not(.other-month)').forEach(cell => {
+            cell.addEventListener('click', function() {
+                const ds = this.dataset.date;
+                const arr = records[ds] || [];
+                if (arr.length > 0) {
+                    const items = arr.map(r => `<div style="margin:4px 0;font-size:var(--font-sm);">${r.typeEmoji} ${r.typeName} · ${r.duration}分钟${r.note?`<br><i>“${r.note}”</i>`:''}</div>`).join('');
+                    showModal(`<div class="modal-date">${formatDateStr(ds)}</div><div>${items}</div><button class="btn btn-sm btn-secondary" onclick="document.getElementById('modalOverlay').classList.add('hidden')">关闭</button>`);
+                } else {
+                    document.getElementById('calDayDetail').style.display = 'block';
+                    document.getElementById('calDayContent').innerHTML = ds === todayStr ? '今天还没有打卡' : '当天未打卡';
+                }
+            });
+        });
+        document.getElementById('calDayDetail').style.display = 'none';
+    }
+    document.getElementById('calPrev').onclick = ()=>{ calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalendar(calYear, calMonth); };
+    document.getElementById('calNext').onclick = ()=>{ calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCalendar(calYear, calMonth); };
+
+    // ========== 统计 ==========
+    function renderStats() {
+        const dates = Object.keys(records).filter(d => records[d].length > 0);
+        let totalDays = dates.length, totalDuration = 0;
+        const typeMap = {};
+        dates.forEach(d => {
+            records[d].forEach(r => {
+                totalDuration += r.duration;
+                const key = r.typeCategory;
+                if (!typeMap[key]) typeMap[key] = { duration:0, count:0, emoji:r.typeEmoji, color: getTypeColor(r.typeId) };
+                typeMap[key].duration += r.duration;
+                typeMap[key].count += 1;
+            });
+        });
+        document.getElementById('statTotalDays').textContent = totalDays;
+        document.getElementById('statTotalDuration').textContent = totalDuration;
+        document.getElementById('statAvgDuration').textContent = totalDays ? Math.round(totalDuration/totalDays) : 0;
+        document.getElementById('statLongestStreak').textContent = calculateStreaks().longest;
+
+        const barChart = document.getElementById('typeBarChart');
+        const sorted = Object.entries(typeMap).sort((a,b)=>b[1].duration-a[1].duration);
+        if (sorted.length===0) barChart.innerHTML='<p style="text-align:center;color:var(--text-secondary);">暂无数据</p>';
+        else {
+            const max = Math.max(...sorted.map(([,v])=>v.duration));
+            barChart.innerHTML = sorted.map(([name,data]) => {
+                const pct = Math.max((data.duration/max)*100, 4);
+                return `<div class="bar-row"><span class="bar-label">${data.emoji} ${name}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${data.color};">${data.duration}分钟</div></div><span class="bar-value">${data.count}次</span></div>`;
+            }).join('');
+        }
+
+        const weekBars = document.getElementById('weekBars');
+        const today = new Date(); today.setHours(0,0,0,0);
+        const weekData = [];
+        for (let i=6; i>=0; i--) {
+            const d = new Date(today); d.setDate(d.getDate()-i);
+            const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            const arr = records[ds] || [];
+            const dur = arr.reduce((s,r)=>s+r.duration,0);
+            weekData.push({ label: ['日','一','二','三','四','五','六'][d.getDay()], duration:dur, isToday: ds===getTodayStr() });
+        }
+        const maxWeek = Math.max(...weekData.map(w=>w.duration), 1);
+        weekBars.innerHTML = weekData.map(w => {
+            const h = w.duration>0 ? Math.max((w.duration/maxWeek)*100, 8) : 3;
+            return `<div class="week-bar-col">
+                <span class="week-bar-val">${w.duration>0?w.duration:''}</span>
+                <div class="week-bar${w.duration===0?' empty':''}" style="height:${h}px;"></div>
+                <span class="week-bar-label" style="${w.isToday?'font-weight:700;color:var(--primary-dark);':''}">${w.label}</span>
+            </div>`;
+        }).join('');
+    }
+
+    function getTypeColor(typeId) {
+        const found = getAllTypes().find(t => t.id === typeId);
+        return found ? found.color : '#95A5A6';
+    }
+
+    // ========== 设置 ==========
+    function renderSettings() {
+        document.getElementById('dailyGoalInput').value = settings.dailyGoal;
+        const list = document.getElementById('customTypeList');
+        const presetItems = READING_CATEGORIES.filter(m => !settings.removedCategories.includes(m.id));
+        const allItems = [
+            ...presetItems.map(m => ({ kind:'preset', id: m.id, name: m.name, emoji: m.emoji })),
+            ...settings.customCategories.map(ct => ({ kind:'custom', id: ct.id, name: ct.name, emoji: ct.emoji||'📚' }))
+        ];
+        if (allItems.length === 0) list.innerHTML = '<span style="font-size:var(--font-xs);color:var(--text-secondary);">暂无分类</span>';
+        else list.innerHTML = allItems.map(it => `
+            <span class="custom-type-tag">${it.emoji||'📚'} ${it.name}<span class="remove-tag" data-kind="${it.kind}" data-id="${it.id}">×</span></span>
+        `).join('');
+        list.querySelectorAll('.remove-tag').forEach(btn => btn.onclick = function(e) {
+            e.stopPropagation();
+            const kind = this.dataset.kind;
+            const id = this.dataset.id;
+            if (kind === 'custom') settings.customCategories = settings.customCategories.filter(ct => ct.id !== id);
+            else if (!settings.removedCategories.includes(id)) settings.removedCategories.push(id);
+            saveSettings(settings);
+            renderSettings();
+            renderCheckinPage();
+        });
+    }
+
+    document.getElementById('saveGoalBtn').onclick = () => {
+        const v = parseInt(document.getElementById('dailyGoalInput').value);
+        if (v>=5 && v<=600) { settings.dailyGoal = v; saveSettings(settings); showToast('目标已保存'); }
+        else showToast('请输入5-600之间的数值');
+    };
+    document.getElementById('addCatConfirmBtn').onclick = () => {
+        const name = document.getElementById('newTypeInput').value.trim();
+        if (!name) return showToast('请输入分类名称');
+        if (getAllTypes().some(c => c.name === name)) return showToast('该分类已存在');
+        const uid = 'c_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+        settings.customCategories.push({ id: uid, name, emoji: '📚', color: getRandomColor() });
+        saveSettings(settings);
+        document.getElementById('newTypeInput').value = '';
+        renderSettings();
+        renderCheckinPage();
+        showToast(`已添加分类“${name}”`);
+    };
+    document.getElementById('addCatCancelBtn').onclick = () => {
+        document.getElementById('newTypeInput').value = '';
+    };
+    document.getElementById('exportBtn').onclick = () => {
+        const data = { records, settings, exportDate: new Date().toISOString() };
+        const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = `阅读打卡_${getTodayStr()}.json`; a.click();
+        showToast('导出成功');
+    };
+    document.getElementById('importBtn').onclick = () => document.getElementById('importFileInput').click();
+    document.getElementById('importFileInput').onchange = e => {
+        const file = e.target.files[0]; if(!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+            try {
+                const data = JSON.parse(ev.target.result);
+                if (!data.records || !data.settings) throw new Error();
+                if (!confirm('导入将覆盖当前数据，确定吗？')) return;
+                records = data.records; settings = data.settings;
+                saveRecords(records); saveSettings(settings);
+                showToast('导入成功'); renderCheckinPage(); renderSettings();
+            } catch { showToast('文件格式错误'); }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+    };
+    document.getElementById('clearDataBtn').onclick = () => {
+        if (confirm('确定清除所有打卡记录？')) {
+            if (confirm('再次确认：无法恢复！')) {
+                records = {}; settings = { dailyGoal:30, customCategories:[], removedCategories:[] };
+                saveRecords(records); saveSettings(settings);
+                showToast('已清除'); renderCheckinPage(); renderSettings();
+            }
+        }
+    };
+
+    // 初始化
+    function init() {
+        renderCheckinPage();
+        const today = new Date(); calYear = today.getFullYear(); calMonth = today.getMonth();
+        updateBadge();
+    }
+    init();
+
+    // 跨天检测
+    sessionStorage.setItem('last_date', getTodayStr());
+    setInterval(() => {
+        const now = getTodayStr();
+        if (sessionStorage.getItem('last_date') !== now) {
+            sessionStorage.setItem('last_date', now);
+            records = loadRecords(); settings = loadSettings();
+            if (currentTab === 'checkin') renderCheckinPage();
+            updateBadge();
+        }
+    }, 60000);
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
